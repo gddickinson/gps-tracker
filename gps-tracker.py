@@ -39,11 +39,28 @@ class LocationProvider(ABC):
 
 class SerialGPSProvider(LocationProvider):
     def __init__(self, port='/dev/tty.usbmodem101', baudrate=115200):
-        self.serial_port = serial.Serial(port, baudrate)
         self._name = f"Serial GPS ({port})"
+        self.port = port
+        self.baudrate = baudrate
+        self.serial_port = None
         self.track_history = []
+        self.connect()
+
+    def connect(self):
+        try:
+            if not self.serial_port or not self.serial_port.is_open:
+                self.serial_port = serial.Serial(self.port, self.baudrate)
+                print(f"Connected to {self.port}")
+        except serial.SerialException as e:
+            print(f"Failed to connect to {self.port}: {e}")
+            self.serial_port = None
 
     def get_location(self):
+        if not self.serial_port or not self.serial_port.is_open:
+            self.connect()
+            if not self.serial_port:
+                return None
+
         try:
             line = self.serial_port.readline().decode('ascii', errors='replace')
             data = {
@@ -79,10 +96,16 @@ class SerialGPSProvider(LocationProvider):
 
         except (serial.SerialException, pynmea2.ParseError) as e:
             print(f"Error reading GPS: {e}")
+            self.close()  # Close the port on error
             return None
 
     def close(self):
-        self.serial_port.close()
+        if self.serial_port and self.serial_port.is_open:
+            try:
+                self.serial_port.close()
+                print(f"Closed {self.port}")
+            except:
+                pass
 
     @property
     def name(self):
@@ -178,22 +201,111 @@ class LocationProviderManager:
             self.providers['mobile'] = MobileDeviceProvider()
 
     def detect_serial_devices(self):
-        # Basic serial port detection
         if platform.system() == 'Darwin':  # macOS
-            import glob
-            ports = glob.glob('/dev/tty.*')
-            for port in ports:
-                if 'usbmodem' in port or 'uart' in port:
-                    try:
-                        provider = SerialGPSProvider(port)
-                        self.providers[f'serial_{port}'] = provider
-                    except:
-                        pass
-        # Add similar detection for Windows/Linux
+            self._detect_macos_devices()
+        elif platform.system() == 'Linux':
+            self._detect_linux_devices()
+        elif platform.system() == 'Windows':
+            self._detect_windows_devices()
+
+    def _detect_macos_devices(self):
+        import glob
+        # Common GPS device patterns
+        patterns = [
+            '/dev/tty.usbmodem*',  # USB modems
+            '/dev/tty.usbserial*', # USB serial devices
+            '/dev/tty.SLAB_*',     # Silicon Labs devices
+            '/dev/tty.GPS*'        # Explicitly named GPS devices
+        ]
+
+        for pattern in patterns:
+            for port in glob.glob(pattern):
+                try:
+                    # Try to open the port briefly to check if it's available
+                    test_serial = serial.Serial(port, 115200, timeout=1)
+                    test_serial.close()
+
+                    # Try to read some data and check if it looks like GPS
+                    with serial.Serial(port, 115200, timeout=1) as ser:
+                        for _ in range(5):  # Try reading a few lines
+                            line = ser.readline().decode('ascii', errors='replace').strip()
+                            if line.startswith('$GP'):  # NMEA sentence detected
+                                provider = SerialGPSProvider(port)
+                                self.providers[f'serial_{port}'] = provider
+                                print(f"Found GPS device on {port}")
+                                break
+
+                except (serial.SerialException, OSError):
+                    continue
+
+    def _detect_linux_devices(self):
+        import glob
+        # Common Linux GPS device patterns
+        patterns = [
+            '/dev/ttyUSB*',    # USB to Serial adapters
+            '/dev/ttyACM*',    # USB modems
+            '/dev/ttyS*',      # Hardware serial ports
+            '/dev/gps*'        # Explicitly named GPS devices
+        ]
+
+        for pattern in patterns:
+            for port in glob.glob(pattern):
+                try:
+                    with serial.Serial(port, 115200, timeout=1) as ser:
+                        for _ in range(5):
+                            line = ser.readline().decode('ascii', errors='replace').strip()
+                            if line.startswith('$GP'):
+                                provider = SerialGPSProvider(port)
+                                self.providers[f'serial_{port}'] = provider
+                                print(f"Found GPS device on {port}")
+                                break
+                except:
+                    continue
+
+    def _detect_windows_devices(self):
+        import serial.tools.list_ports
+
+        # List all COM ports
+        ports = serial.tools.list_ports.comports()
+
+        for port in ports:
+            try:
+                # Check if the device description suggests it's a GPS
+                if any(keyword in port.description.lower() for keyword in ['gps', 'location', 'navigation']):
+                    provider = SerialGPSProvider(port.device)
+                    self.providers[f'serial_{port.device}'] = provider
+                    print(f"Found GPS device on {port.device}")
+                    continue
+
+                # If not obviously a GPS, try reading from it
+                with serial.Serial(port.device, 115200, timeout=1) as ser:
+                    for _ in range(5):
+                        line = ser.readline().decode('ascii', errors='replace').strip()
+                        if line.startswith('$GP'):
+                            provider = SerialGPSProvider(port.device)
+                            self.providers[f'serial_{port.device}'] = provider
+                            print(f"Found GPS device on {port.device}")
+                            break
+            except:
+                continue
 
     def check_mobile_capability(self):
         # Check if running on mobile device or has mobile device connected
         return False  # Placeholder
+
+    def refresh_devices(self):
+        """Refresh the list of available devices"""
+        # Close all existing serial providers
+        for provider in self.providers.values():
+            if isinstance(provider, SerialGPSProvider):
+                provider.close()
+
+        # Remove all serial providers
+        self.providers = {k:v for k,v in self.providers.items()
+                         if not isinstance(v, SerialGPSProvider)}
+
+        # Detect devices again
+        self.detect_serial_devices()
 
     def get_provider_names(self):
         return [provider.name for provider in self.providers.values()]
@@ -220,116 +332,10 @@ class LocationProviderManager:
     def close(self):
         for provider in self.providers.values():
             provider.close()
+            provider.close()
 
 
 
-# class GPSReader:
-#     def __init__(self, port='/dev/tty.usbmodem1101', baudrate=115200):
-#         self.serial_port = serial.Serial(port, baudrate)
-#         self.current_data = {
-#             'latitude': None,
-#             'longitude': None,
-#             'time': None,
-#             'date': None,
-#             'speed': None,
-#             'fix_quality': None,
-#             'satellites': None,
-#             'altitude': None,
-#             'track_angle': None,
-#             'hdop': None,
-#             'distance_traveled': 0.0,
-#             'max_speed': 0.0,
-#             'last_position': None
-#         }
-#         self.logging = False
-#         self.log_file = None
-#         self.writer = None
-#         self.track_history = []  # Store position history for plotting
-
-#     def haversine_distance(self, lat1, lon1, lat2, lon2):
-#         R = 6371  # Earth's radius in kilometers
-#         dlat = radians(lat2 - lat1)
-#         dlon = radians(lon2 - lon1)
-#         a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-#         c = 2 * atan2(sqrt(a), sqrt(1-a))
-#         return R * c
-
-#     def read_gps(self):
-#         try:
-#             line = self.serial_port.readline().decode('ascii', errors='replace')
-
-#             if line.startswith('$GPRMC'):
-#                 msg = pynmea2.parse(line)
-#                 self.current_data['time'] = msg.timestamp
-#                 self.current_data['date'] = msg.datestamp
-#                 if msg.status == 'A':  # Valid fix
-#                     self.current_data['latitude'] = msg.latitude
-#                     self.current_data['longitude'] = msg.longitude
-#                     self.current_data['speed'] = msg.spd_over_grnd
-#                     self.current_data['track_angle'] = msg.true_course
-
-#                     # Store position history
-#                     if msg.latitude and msg.longitude:
-#                         self.track_history.append((msg.latitude, msg.longitude))
-#                         # Keep last 1000 points
-#                         if len(self.track_history) > 1000:
-#                             self.track_history.pop(0)
-
-#                     # Update distance traveled
-#                     if self.current_data['last_position']:
-#                         last_lat, last_lon = self.current_data['last_position']
-#                         distance = self.haversine_distance(
-#                             last_lat, last_lon,
-#                             msg.latitude, msg.longitude
-#                         )
-#                         self.current_data['distance_traveled'] += distance
-
-#                     self.current_data['last_position'] = (msg.latitude, msg.longitude)
-
-#                     # Update max speed
-#                     if msg.spd_over_grnd and msg.spd_over_grnd > self.current_data['max_speed']:
-#                         self.current_data['max_speed'] = msg.spd_over_grnd
-
-#             elif line.startswith('$GPGGA'):
-#                 msg = pynmea2.parse(line)
-#                 self.current_data['fix_quality'] = msg.gps_qual
-#                 self.current_data['satellites'] = msg.num_sats
-#                 self.current_data['altitude'] = msg.altitude
-#                 self.current_data['hdop'] = msg.horizontal_dil
-
-#             if self.logging and self.writer and self.current_data['latitude']:
-#                 self.writer.writerow({
-#                     'timestamp': datetime.now().isoformat(),
-#                     'latitude': self.current_data['latitude'],
-#                     'longitude': self.current_data['longitude'],
-#                     'speed': self.current_data['speed'],
-#                     'altitude': self.current_data['altitude'],
-#                     'satellites': self.current_data['satellites']
-#                 })
-
-#             return self.current_data
-
-#         except (serial.SerialException, pynmea2.ParseError) as e:
-#             print(f"Error reading GPS: {e}")
-#             return None
-
-#     def start_logging(self, filename):
-#         self.log_file = open(filename, 'w', newline='')
-#         fieldnames = ['timestamp', 'latitude', 'longitude', 'speed', 'altitude', 'satellites']
-#         self.writer = csv.DictWriter(self.log_file, fieldnames=fieldnames)
-#         self.writer.writeheader()
-#         self.logging = True
-
-#     def stop_logging(self):
-#         self.logging = False
-#         if self.log_file:
-#             self.log_file.close()
-#             self.log_file = None
-#             self.writer = None
-
-#     def close(self):
-#         self.stop_logging()
-#         self.serial_port.close()
 
 class TrackMapWidget(QWidget):
     def __init__(self, parent=None):
@@ -461,8 +467,12 @@ class GPSWindow(QMainWindow):
         self.source_combo.addItems(self.location_manager.get_provider_names())
         self.source_combo.currentTextChanged.connect(self.change_location_source)
 
+        refresh_button = QPushButton("Refresh Devices")
+        refresh_button.clicked.connect(self.refresh_devices)
+
         source_layout.addWidget(source_label)
         source_layout.addWidget(self.source_combo)
+        source_layout.addWidget(refresh_button)
         layout.addLayout(source_layout)
 
         # Create tab widget
@@ -620,11 +630,28 @@ class GPSWindow(QMainWindow):
                     'source': data.get('source')
                 })
 
+    def refresh_devices(self):
+        current_source = self.source_combo.currentText()
+        self.location_manager.refresh_devices()
+
+        # Update combo box
+        self.source_combo.clear()
+        self.source_combo.addItems(self.location_manager.get_provider_names())
+
+        # Try to restore previous selection
+        index = self.source_combo.findText(current_source)
+        if index >= 0:
+            self.source_combo.setCurrentIndex(index)
+
+        QMessageBox.information(self, "Devices Refreshed",
+                              "Available location sources have been refreshed.")
+
     def clear_track(self):
         if self.location_manager.active_provider:
             self.location_manager.active_provider.track_history.clear()
         if self.map_dialog:
             self.map_dialog.update_position([])
+
 
     def closeEvent(self, event):
         self.location_manager.close()
