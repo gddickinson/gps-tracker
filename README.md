@@ -214,3 +214,6 @@ For support, please:
    - Detailed problem description
    - Error messages
    - System information
+
+---
+*Built with AI assistance from [Claude (Anthropic)](https://claude.com/).*
