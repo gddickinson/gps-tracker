@@ -80,3 +80,20 @@ def test_gui_shows_zero_speed_and_altitude():
     assert fake.labels["speed"].text == "0.0 knots"
     assert fake.labels["altitude"].text == "0.0m"
     assert fake.labels["latitude"].text == "0.000000"
+
+
+def test_gui_distance_label_shows_track_length():
+    import gui
+    import geo
+
+    class Label:
+        text = "N/A"
+
+        def setText(self, t):
+            self.text = t
+
+    track = [(0.0, 0.0), (0.0, 0.01), (0.01, 0.01)]
+    fake = types.SimpleNamespace(labels={"distance": Label()},
+                                 location_manager=types.SimpleNamespace(get_track_history=lambda: track))
+    gui.GPSWindow._update_distance(fake)
+    assert fake.labels["distance"].text == f"{geo.path_length_m(track) / 1000:.3f} km"

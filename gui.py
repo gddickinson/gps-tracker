@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget,
                            QComboBox, QMessageBox)
 from PyQt6.QtCore import QTimer
 
+import geo
 from providers import LocationProviderManager
 from mapping import MapDialog
 
@@ -174,49 +175,55 @@ class GPSWindow(QMainWindow):
         data = self.location_manager.get_location()
         if data:
             self._update_labels(data)
+            self._update_distance()
             self._update_map()
             self._log_data(data)
 
     def _update_labels(self, data):
         """Update the GPS data labels from location data"""
-        if data.get('time'):
+        if data.get('time') not in (None, ''):
             self.labels['time'].setText(data['time'].strftime('%H:%M:%S'))
-        if data.get('date'):
+        if data.get('date') not in (None, ''):
             self.labels['date'].setText(data['date'].strftime('%Y-%m-%d'))
-        if data.get('latitude'):
+        if data.get('latitude') not in (None, ''):
             self.labels['latitude'].setText(f"{data['latitude']:.6f}")
-        if data.get('longitude'):
+        if data.get('longitude') not in (None, ''):
             self.labels['longitude'].setText(f"{data['longitude']:.6f}")
-        if data.get('speed'):
+        if data.get('speed') not in (None, ''):
             try:
                 speed_val = float(data['speed'])
                 self.labels['speed'].setText(f"{speed_val:.1f} knots")
             except (ValueError, TypeError):
                 self.labels['speed'].setText(str(data['speed']))
-        if data.get('track_angle'):
+        if data.get('track_angle') not in (None, ''):
             try:
                 angle_val = float(data['track_angle'])
                 self.labels['track angle'].setText(f"{angle_val:.1f}\u00b0")
             except (ValueError, TypeError):
                 self.labels['track angle'].setText(str(data['track_angle']))
-        if data.get('fix_quality') is not None:
+        if data.get('fix_quality') not in (None, ''):
             self.labels['fix quality'].setText(str(data['fix_quality']))
-        if data.get('satellites'):
+        if data.get('satellites') not in (None, ''):
             self.labels['satellites'].setText(str(data['satellites']))
-        if data.get('altitude'):
+        if data.get('altitude') not in (None, ''):
             try:
                 alt_val = float(data['altitude'])
                 self.labels['altitude'].setText(f"{alt_val:.1f}m")
             except (ValueError, TypeError):
                 self.labels['altitude'].setText(str(data['altitude']))
-        if data.get('hdop'):
+        if data.get('hdop') not in (None, ''):
             try:
                 hdop_val = float(data['hdop'])
                 self.labels['hdop'].setText(f"{hdop_val:.1f}")
             except (ValueError, TypeError):
                 self.labels['hdop'].setText(str(data['hdop']))
-        if data.get('source'):
+        if data.get('source') not in (None, ''):
             self.labels['source'].setText(str(data['source']))
+
+    def _update_distance(self):
+        """Show the length of the current track (great-circle sum, geo.path_length_m)"""
+        metres = geo.path_length_m(self.location_manager.get_track_history())
+        self.labels['distance'].setText(f"{metres / 1000:.3f} km")
 
     def _update_map(self):
         """Update the map dialog if visible"""
@@ -242,6 +249,7 @@ class GPSWindow(QMainWindow):
             self.location_manager.active_provider.track_history.clear()
         if self.map_dialog:
             self.map_dialog.update_position([])
+        self.labels['distance'].setText("0.000 km")
 
     def closeEvent(self, event):
         """Handle application shutdown"""
