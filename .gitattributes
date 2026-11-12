@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Test fixtures: keep exact bytes (CRLF and BOM cases are tested)
+tests/fixtures/** -text

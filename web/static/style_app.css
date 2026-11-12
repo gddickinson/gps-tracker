@@ -1,0 +1,45 @@
+/* GPS Tracker: teal route accent, pink and yellow secondaries. */
+:root { --accent:#2ff3c8; --accent2:#ff5ca8; --accent3:#ffd23f; --glow:rgba(47,243,200,.15); }
+button, .btn { color:#02140f; }
+.mark { border-radius:4px; border:0; background:url(icon.svg) center/cover; box-shadow:0 0 12px var(--glow); }
+.drop { display:block; border:2px dashed var(--line); border-radius:8px; padding:16px 18px; text-align:center; cursor:pointer;
+  background:rgba(12,16,32,.6); transition:border-color .15s, background .15s; }
+.drop:hover, .drop.over, .drop:focus-within { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 7%, transparent); }
+.drop b { display:block; font-size:19px; color:var(--ink); }
+.drop input[type=file] { max-width:320px; margin:12px auto 0; display:block; }
+.privacy { border-left:3px solid var(--accent3); padding:8px 14px; background:color-mix(in srgb, var(--accent3) 7%, transparent);
+  border-radius:0 4px 4px 0; margin:12px 0; font-size:14px; }
+.bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.bar button { margin:0; }
+.demos { margin-top:12px; } #demos { display:flex; gap:8px; flex-wrap:wrap; }
+.settings { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:4px 14px; }
+details.panel summary { cursor:pointer; color:var(--accent); font:600 13px var(--mono); text-transform:uppercase; letter-spacing:.08em; }
+.filehead { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.filehead h3 { margin:0 8px 0 0; color:var(--accent); text-transform:none; letter-spacing:0; font:600 16px var(--mono); overflow-wrap:anywhere; }
+.unitsel { margin-top:12px; } .unitsel button { padding:5px 12px; }
+.tile b { font-size:22px; }
+.mapbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+.mapbar button { margin:0; padding:6px 12px; min-width:40px; }
+label.check { display:flex; gap:6px; align-items:center; margin:0; color:var(--ink); }
+svg.map { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:6px; touch-action:none; cursor:grab; background:#03050b; }
+svg.map:active { cursor:grabbing; }
+svg.map .sea { fill:#060a16; } svg.map .grid, svg.profile .grid { stroke:#16203d; stroke-width:1; }
+svg.map .route { fill:none; stroke:var(--accent); stroke-width:3; stroke-linejoin:round; stroke-linecap:round; }
+svg.map .route-glow { fill:none; stroke:var(--accent); stroke-opacity:.25; stroke-width:9; stroke-linejoin:round; stroke-linecap:round; }
+svg.map .start { fill:var(--accent3); stroke:#05060c; stroke-width:2; }
+svg.map .end { fill:var(--accent2); stroke:#05060c; stroke-width:2; }
+svg.map .hover { fill:none; stroke:#fff; stroke-width:3; }
+svg.map .scale rect { fill:rgba(5,6,12,.78); } svg.map .scale path { fill:none; stroke:var(--ink); stroke-width:2; }
+svg.map .scale text { fill:var(--ink); font:12px var(--mono); text-anchor:middle; }
+svg.map .attrib { fill:#111; font:11px var(--sans); text-anchor:end; paint-order:stroke; stroke:rgba(255,255,255,.85); stroke-width:3px; }
+svg.profile { width:100%; height:auto; display:block; touch-action:pan-y; }
+svg.profile .area { fill:color-mix(in srgb, var(--accent) 16%, transparent); }
+svg.profile .line { fill:none; stroke:var(--accent); stroke-width:2; }
+svg.profile .ax { fill:var(--mute); font:11px var(--mono); }
+svg.profile .cursor line { stroke:var(--accent3); } svg.profile .cursor circle { fill:var(--accent3); }
+svg.profile .cursor text { fill:var(--ink); font:12px var(--mono); }
+table.splits td, table.splits th { white-space:nowrap; }
+.barcol { width:40%; } .bar { min-width:0; }
+span.bar { display:block; height:10px; border-radius:3px; background:linear-gradient(90deg, var(--accent), var(--accent3)); }
+[hidden] { display:none !important; }
+@media (max-width:760px) { .barcol { width:25%; } }

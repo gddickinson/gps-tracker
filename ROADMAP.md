@@ -13,9 +13,9 @@ A functional GPS tracking app with PyQt6 GUI, serial GPS and IP geolocation prov
 
 ## Feature Enhancements
 - [ ] Integrate the `GPS_I2C_Parsing` module into the main app as an additional LocationProvider
-- [ ] Add GPX file export/import for track data (industry standard format)
-- [ ] Implement elevation profile visualization for recorded tracks
-- [ ] Add distance and speed calculations with moving average smoothing
+- [ ] Add GPX file export/import for track data (industry standard format) -- import done in the web interface (`track_io.py` reads GPX/TCX/CSV/NMEA); desktop import/export still to do
+- [x] Implement elevation profile visualization for recorded tracks (web interface)
+- [x] Add distance and speed calculations with moving average smoothing (`track_stats.py`; desktop shows track distance)
 - [ ] Support multiple simultaneous tracks with color coding
 - [ ] Add geofencing alerts (notify when entering/leaving an area)
 - [ ] Implement tile pre-fetching for smoother map panning

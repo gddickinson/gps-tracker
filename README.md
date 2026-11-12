@@ -56,15 +56,16 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 3. Install required packages:
 ```bash
-pip install pyserial pynmea2 PyQt6 requests
+pip install -r requirements.txt
 ```
 
 ## Usage
 
 1. Start the application:
 ```bash
-python gps-tracker.py
+python main.py
 ```
+(`gps-tracker.py` is the original single-file version, kept for reference.)
 
 2. Select a location source from the dropdown menu:
    - If using a GPS device, it should be automatically detected
@@ -108,12 +109,23 @@ The application is built with a modular design consisting of several key compone
 
 ```
 gps-tracker/
-├── gps-tracker.py     # Main application file
+├── main.py            # Entry point (PyQt6 app)
+├── gui.py             # Main window: live data, logging, track distance
+├── providers.py       # Serial NMEA GPS and IP geolocation sources
+├── mapping.py         # Tile cache, scale bar, map widget
+├── geo.py             # Qt-free projection, scale and distance maths
+├── tile_servers.py    # Map tile server list
+├── track_io.py        # Read GPX / TCX / CSV tracks (track_nmea.py: NMEA logs)
+├── track_stats.py     # Distance, moving time, speed, elevation, splits
+├── web/               # Web interface + static site (see below)
+├── tests/             # pytest suite (+ fixtures, JS-vs-Python checks)
 ├── map_cache/         # Cached map tiles
 │   └── tile_cache.db
 ├── requirements.txt   # Python dependencies
 └── README.md
 ```
+
+See `INTERFACE.md` for the full module map.
 
 ### Key Classes
 
@@ -137,6 +149,32 @@ Interactive map display with:
 - Track visualization
 - User input handling
 - Dynamic updates
+
+## Web interface
+
+**Live site: https://gddickinson.github.io/gps-tracker/** (static, nothing to install)
+
+Open a recorded track (GPX, TCX, CSV such as this app's own log, or a raw NMEA log) in the browser and get the
+distance, moving time, average/moving/max speed (km/h or knots), climb and descent, heart rate and per-km (or mile)
+splits, with the route on a map and an elevation profile. **Files never leave your device**: they are read by
+JavaScript ports of `track_io.py`, `track_nmea.py`, `track_stats.py` and `geo.py`, tested against the Python
+(`node web/static/track_engine.test.mjs`, `tests/test_js_port.py`). The map is drawn without tiles; an optional
+OpenStreetMap background (with attribution) loads tiles for the area shown only when switched on. The demo tracks are
+synthetic (an invented loop at 0° N, 0° E), written by `scripts/make_demo_tracks.py`.
+
+![Home](docs/img/home.png)
+![Track statistics, map, elevation profile and splits](docs/img/track_results.png)
+
+### Run the web app
+
+```bash
+pip install -r requirements-web.txt
+python run_web.py          # http://127.0.0.1:8161
+```
+
+The local app adds "Check with the Python modules", which runs the Python code on your file and compares every value.
+Tests: `python -m pytest -q tests test_providers.py`. Build the static site: `python scripts/build_static.py`
+(published by `.github/workflows/pages.yml` on push to main; one-time setup: Settings → Pages → Source "GitHub Actions").
 
 ## Contributing
 
@@ -186,12 +224,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
    - Verify correct port selection
    - Ensure proper baud rate
 
-### Debug Mode
+### Debug logging
 
-Add the `--debug` flag when running for additional logging:
-```bash
-python gps-tracker.py --debug
-```
+`main.py` logs at INFO level. For more detail, change `level=logging.INFO` to `logging.DEBUG` in `main.py`
+(there is no `--debug` command-line flag).
 
 ## Future Enhancements
 

@@ -1,0 +1,9 @@
+# Web interface (python run_web.py) and its tests; the desktop app's own requirements are in requirements.txt.
+fastapi==0.162.2
+httpx==0.28.1
+pytest==9.2.0
+uvicorn==0.54.0
+python-multipart==0.0.33
+pynmea2==1.19.0
+pyserial==3.5
+requests==2.32.3

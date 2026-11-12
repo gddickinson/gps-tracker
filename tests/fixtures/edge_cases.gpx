@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!-- Hand-written edge cases for the GPX reader (invented coordinates) -->
+<g:gpx xmlns:g="http://www.topografix.com/GPX/1/0" version="1.0">
+  <g:rte><g:name>Route &amp; &lt;test&gt; <![CDATA[A&B]]></g:name>
+    <g:rtept lat="10.5" lon="-20.25"><g:ele> 5 </g:ele><g:time>2024-02-29T23:59:59.5+01:30</g:time></g:rtept>
+    <g:rtept lat=" 10.501 " lon="-20.2501"><!-- no elevation --><g:time>2024-03-01T00:00:10-0130</g:time></g:rtept>
+    <g:rtept lat='91' lon='0'><g:ele>1</g:ele></g:rtept>
+    <g:rtept lat="nan" lon="0"/>
+    <g:rtept lat="10.502" lon="-20.2502"><g:ele>1e1</g:ele><g:time>2024-13-01T00:00:00Z</g:time></g:rtept>
+    <g:rtept lat="+10.503" lon="-20.2503"><g:ele>abc</g:ele><g:time>2024-03-01 00:00:30</g:time></g:rtept>
+  </g:rte>
+  <g:trk><g:trkseg></g:trkseg><g:trkseg>
+    <g:trkpt lat="10.6" lon="-20.3"><g:time>2024-03-01T01:00:00z</g:time></g:trkpt>
+    <g:trkpt lat="10.6005" lon="-20.3005"><g:time>2024-03-01T01:00:20Z</g:time><g:extensions><x:hr xmlns:x="urn:x">150</x:hr></g:extensions></g:trkpt>
+  </g:trkseg></g:trk>
+</g:gpx>

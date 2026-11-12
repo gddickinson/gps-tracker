@@ -63,6 +63,7 @@ def test_multi_gnss_talker_and_zero_longitude(monkeypatch):
 
 
 def test_gui_shows_zero_speed_and_altitude():
+    pytest.importorskip("PyQt6.QtWidgets")
     import gui
 
     class Label:
@@ -83,6 +84,7 @@ def test_gui_shows_zero_speed_and_altitude():
 
 
 def test_gui_distance_label_shows_track_length():
+    pytest.importorskip("PyQt6.QtWidgets")
     import gui
     import geo
 

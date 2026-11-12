@@ -1,7 +1,11 @@
 """Desktop map regressions: drag panning direction/scale and the scale bar length (Qt offscreen, no network)."""
 import math
 
+import pytest
+
 import geo
+
+pytest.importorskip("PyQt6.QtWidgets")
 
 
 class _Pos:
