@@ -6,7 +6,6 @@ interactive map widget with pan/zoom, and the map dialog.
 """
 
 import os
-import math
 import time
 import logging
 import sqlite3
@@ -16,6 +15,8 @@ import requests
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QDialog
 from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPixmap, QPainterPath, QFont
+
+import geo
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +188,7 @@ class ScaleBar(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        meters_per_pixel = 156543.03392 * math.cos(math.radians(self.latitude)) / (2 ** self.zoom_level)
+        meters_per_pixel = geo.meters_per_pixel(self.latitude, self.zoom_level)
         scale_width = 100
         distance = meters_per_pixel * scale_width
 
@@ -291,20 +292,12 @@ class MapWidget(QWidget):
         self.update()
 
     def latlon_to_pixel(self, lat, lon):
-        """Convert latitude/longitude to pixel coordinates"""
-        n = 2.0 ** self.zoom_level
-        lat_rad = math.radians(lat)
-        x = ((lon + 180.0) / 360.0 * n)
-        y = ((1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi) / 2.0 * n)
-        return x, y
+        """Convert latitude/longitude to fractional tile coordinates at the current zoom"""
+        return geo.latlon_to_tile(lat, lon, self.zoom_level)
 
     def pixel_to_latlon(self, x, y):
-        """Convert pixel coordinates to latitude/longitude"""
-        n = 2.0 ** self.zoom_level
-        lon_deg = x / n * 360.0 - 180.0
-        lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * y / n)))
-        lat_deg = math.degrees(lat_rad)
-        return lat_deg, lon_deg
+        """Convert fractional tile coordinates to latitude/longitude"""
+        return geo.tile_to_latlon(x, y, self.zoom_level)
 
     def paintEvent(self, event):
         """Draw the map and overlays"""
