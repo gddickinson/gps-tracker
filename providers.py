@@ -55,6 +55,7 @@ class SerialGPSProvider(LocationProvider):
         self.baudrate = baudrate
         self.serial_port = None
         self.track_history = []
+        self._state = self._empty_state()
         self.connect()
 
     def connect(self):
@@ -67,10 +68,51 @@ class SerialGPSProvider(LocationProvider):
             logger.error("Failed to connect to %s: %s", self.port, e)
             self.serial_port = None
 
+    MAX_LINES_PER_READ = 200  # bound one update even if the device floods the port
+
+    def _empty_state(self):
+        return {
+            'latitude': None, 'longitude': None, 'altitude': None,
+            'speed': None, 'satellites': None, 'fix_quality': None,
+            'time': None, 'date': None, 'track_angle': None,
+            'hdop': None, 'source': self.name
+        }
+
+    def _apply_sentence(self, line):
+        """Merge one NMEA sentence (RMC or GGA from any talker: GP, GN, GL, ...) into the current state."""
+        line = line.strip()
+        kind = line[3:6] if line.startswith('$') else ''
+        if kind not in ('RMC', 'GGA'):
+            return
+        try:
+            msg = pynmea2.parse(line)
+            state = self._state
+            if kind == 'RMC':
+                state['time'] = msg.timestamp
+                state['date'] = msg.datestamp
+                if msg.status == 'A':  # Valid fix
+                    lat, lon = msg.latitude, msg.longitude
+                    state['latitude'], state['longitude'] = lat, lon
+                    state['speed'] = msg.spd_over_grnd
+                    state['track_angle'] = msg.true_course
+                    if lat is not None and lon is not None:
+                        self.track_history.append((lat, lon))
+                        if len(self.track_history) > 1000:
+                            self.track_history.pop(0)
+                else:  # fix lost: don't keep showing the old position as current
+                    state['latitude'] = state['longitude'] = state['speed'] = None
+            else:
+                state['fix_quality'] = msg.gps_qual
+                state['satellites'] = msg.num_sats
+                state['altitude'] = msg.altitude
+                state['hdop'] = msg.horizontal_dil
+        except (pynmea2.ParseError, ValueError, TypeError, AttributeError) as e:
+            logger.debug("Skipping bad NMEA sentence %r: %s", line, e)
+
     def get_location(self):
         """
-        Read and parse GPS data from serial port.
-        Returns: dict containing current GPS data
+        Read every NMEA sentence waiting on the serial port and merge them.
+        Returns: dict with the latest position (RMC) and fix details (GGA), or None if the port fails.
         """
         if not self.serial_port or not self.serial_port.is_open:
             self.connect()
@@ -78,42 +120,17 @@ class SerialGPSProvider(LocationProvider):
                 return None
 
         try:
-            line = self.serial_port.readline().decode('ascii', errors='replace')
-            data = {
-                'latitude': None, 'longitude': None, 'altitude': None,
-                'speed': None, 'satellites': None, 'fix_quality': None,
-                'time': None, 'date': None, 'track_angle': None,
-                'hdop': None, 'source': self.name
-            }
-
-            if line.startswith('$GPRMC'):
-                msg = pynmea2.parse(line)
-                data['time'] = msg.timestamp
-                data['date'] = msg.datestamp
-                if msg.status == 'A':  # Valid fix
-                    data['latitude'] = msg.latitude
-                    data['longitude'] = msg.longitude
-                    data['speed'] = msg.spd_over_grnd
-                    data['track_angle'] = msg.true_course
-
-                    if data['latitude'] and data['longitude']:
-                        self.track_history.append((data['latitude'], data['longitude']))
-                        if len(self.track_history) > 1000:
-                            self.track_history.pop(0)
-
-            elif line.startswith('$GPGGA'):
-                msg = pynmea2.parse(line)
-                data['fix_quality'] = msg.gps_qual
-                data['satellites'] = msg.num_sats
-                data['altitude'] = msg.altitude
-                data['hdop'] = msg.horizontal_dil
-
-            return data
-
-        except (serial.SerialException, pynmea2.ParseError) as e:
+            lines = [self.serial_port.readline()]
+            while self.serial_port.in_waiting and len(lines) < self.MAX_LINES_PER_READ:
+                lines.append(self.serial_port.readline())
+        except (serial.SerialException, OSError) as e:
             logger.error("Error reading GPS: %s", e)
             self.close()
             return None
+
+        for raw in lines:
+            self._apply_sentence(raw.decode('ascii', errors='replace'))
+        return dict(self._state)
 
     def close(self):
         """Close serial port connection"""
@@ -169,7 +186,7 @@ class IPLocationProvider(LocationProvider):
                     'source': self.name
                 }
 
-                if data['latitude'] and data['longitude']:
+                if data['latitude'] is not None and data['longitude'] is not None:
                     self.track_history.append((data['latitude'], data['longitude']))
                     if len(self.track_history) > 1000:
                         self.track_history.pop(0)
@@ -234,7 +251,7 @@ class LocationProviderManager:
                     with serial.Serial(port, 115200, timeout=1) as ser:
                         for _ in range(5):
                             line = ser.readline().decode('ascii', errors='replace').strip()
-                            if line.startswith('$GP'):
+                            if line.startswith('$G'):
                                 provider = SerialGPSProvider(port)
                                 self.providers[f'serial_{port}'] = provider
                                 logger.info("Found GPS device on %s", port)
@@ -259,7 +276,7 @@ class LocationProviderManager:
                     with serial.Serial(port, 115200, timeout=1) as ser:
                         for _ in range(5):
                             line = ser.readline().decode('ascii', errors='replace').strip()
-                            if line.startswith('$GP'):
+                            if line.startswith('$G'):
                                 provider = SerialGPSProvider(port)
                                 self.providers[f'serial_{port}'] = provider
                                 logger.info("Found GPS device on %s", port)
@@ -285,7 +302,7 @@ class LocationProviderManager:
                 with serial.Serial(port.device, 115200, timeout=1) as ser:
                     for _ in range(5):
                         line = ser.readline().decode('ascii', errors='replace').strip()
-                        if line.startswith('$GP'):
+                        if line.startswith('$G'):
                             provider = SerialGPSProvider(port.device)
                             self.providers[f'serial_{port.device}'] = provider
                             logger.info("Found GPS device on %s", port.device)
