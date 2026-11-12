@@ -119,7 +119,7 @@ gps-tracker/
 ├── track_stats.py     # Distance, moving time, speed, elevation, splits
 ├── web/               # Web interface + static site (see below)
 ├── tests/             # pytest suite (+ fixtures, JS-vs-Python checks)
-├── map_cache/         # Cached map tiles
+├── map_cache/         # Cached map tiles (created on first use, not in git)
 │   └── tile_cache.db
 ├── requirements.txt   # Python dependencies
 └── README.md

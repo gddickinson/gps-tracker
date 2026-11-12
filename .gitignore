@@ -4,3 +4,4 @@ __pycache__/
 .DS_Store
 site/
 test_log.csv
+map_cache/

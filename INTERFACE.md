@@ -68,5 +68,5 @@ web/static/track.js --> track_io.js, track_stats.js, track_map.js, track_charts.
 
 ## Configuration
 - Tile server URLs are defined in `tile_servers.TILE_SERVERS` (no hardcoded paths)
-- Tile cache stored in `map_cache/tile_cache.db` (SQLite)
+- Tile cache stored in `map_cache/tile_cache.db` (SQLite, created on first use; not tracked by git)
 - Statistic defaults: `track_stats.MOVING_SPEED_MPS`, `SPEED_WINDOW_S`, `ELEVATION_THRESHOLD_M`, `SPLIT_M`

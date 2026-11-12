@@ -31,3 +31,10 @@
 **Verification**: `pytest tests test_providers.py` 41 passed; node test ok; screenshots `--static` and `--base` all ok,
 phone width 0 px overflow; local "Check with the Python modules" identical for all four demo formats.
 The Mac mini was not used.
+
+## 2026-11-12 -- follow-up (lead's request)
+- `map_cache/tile_cache.db` untracked (`git rm --cached`) and `map_cache/` added to .gitignore: its zoom 16-17 tiles
+  showed where the app was used. The file is still in git history (commits b6eb18b, 156dff0); removing it from
+  history would need a history rewrite (George's decision). The local copy is kept, and the app recreates it if missing.
+- Legacy `gps-tracker.py` moved to `_archive/` (superseded by main.py + modules; nothing imported it; it still has the
+  bugs fixed in the modules).
