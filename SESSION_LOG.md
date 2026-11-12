@@ -38,3 +38,8 @@ The Mac mini was not used.
   history would need a history rewrite (George's decision). The local copy is kept, and the app recreates it if missing.
 - Legacy `gps-tracker.py` moved to `_archive/` (superseded by main.py + modules; nothing imported it; it still has the
   bugs fixed in the modules).
+
+## 2026-11-12: git history rewrite (approved by George)
+- Purged from all history with git-filter-repo and force-pushed: map_cache/tile_cache.db (the app rebuilds the tile cache on demand).
+  The current tree is unchanged (identical HEAD tree before/after); commit hashes changed, so old clones must be
+  re-cloned or reset to origin. A pre-rewrite mirror backup was kept outside the repo.
