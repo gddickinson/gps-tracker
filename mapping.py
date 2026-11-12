@@ -387,12 +387,9 @@ class MapWidget(QWidget):
             dx = event.pos().x() - self.last_pos.x()
             dy = event.pos().y() - self.last_pos.y()
 
-            n = 2.0 ** self.zoom_level
-            dlat = -dy / 256.0 / n * 360.0
-            dlon = -dx / 256.0 / n * 360.0
-
-            self.center_lat += dlat
-            self.center_lon += dlon
+            self.center_lat, self.center_lon = geo.pan(
+                self.center_lat, self.center_lon, dx, dy, self.zoom_level)
+            self.scale_bar.update_scale(self.zoom_level, self.center_lat)
             self.last_pos = event.pos()
             self.update()
 
