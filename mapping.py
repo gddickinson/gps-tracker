@@ -183,21 +183,17 @@ class ScaleBar(QWidget):
         self.latitude = latitude
         self.update()
 
+    def scale(self):
+        """(metres, width_px, label) for a round distance about 100 px long (geo.nice_scale)"""
+        return geo.nice_scale(self.latitude, self.zoom_level, 100)
+
     def paintEvent(self, event):
         """Draw the scale bar"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        meters_per_pixel = geo.meters_per_pixel(self.latitude, self.zoom_level)
-        scale_width = 100
-        distance = meters_per_pixel * scale_width
-
-        if distance >= 1000:
-            distance = round(distance / 1000) * 1000
-            label = f"{distance/1000:.0f} km"
-        else:
-            distance = round(distance / 100) * 100
-            label = f"{distance:.0f} m"
+        _, scale_width, label = self.scale()
+        scale_width = int(round(scale_width))
 
         painter.setPen(QPen(Qt.GlobalColor.black, 2))
         y = self.height() - 5

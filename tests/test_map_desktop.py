@@ -39,3 +39,14 @@ def test_drag_down_moves_centre_north_and_keeps_point_under_cursor(map_widget):
     x1, y1 = geo.latlon_to_tile(w.center_lat, w.center_lon, 14)
     assert math.isclose((x0 - x1) * 256, 30, rel_tol=1e-9)
     assert math.isclose((y0 - y1) * 256, 40, rel_tol=1e-9)
+
+
+def test_scale_bar_length_matches_label(qapp):
+    import mapping
+    bar = mapping.ScaleBar()
+    for zoom, lat in [(15, 0.0), (12, 45.0), (19, 0.0), (3, 60.0), (17, 30.1)]:
+        bar.update_scale(zoom, lat)
+        metres, width, label = bar.scale()
+        assert label != "0 m"
+        assert math.isclose(width * geo.meters_per_pixel(lat, zoom), metres, rel_tol=1e-9)
+        assert 0 < width <= bar.width() - 20
