@@ -65,7 +65,7 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
-(`gps-tracker.py` is the original single-file version, kept for reference.)
+(The original single-file version is in `_archive/gps-tracker.py`: superseded, with known bugs, kept for reference only.)
 
 2. Select a location source from the dropdown menu:
    - If using a GPS device, it should be automatically detected

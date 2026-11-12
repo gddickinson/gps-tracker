@@ -14,7 +14,7 @@
 | `track_io.py` | Read recorded tracks: GPX, TCX, CSV (incl. this app's log); `parse_track()` dispatches by format |
 | `track_nmea.py` | Read raw NMEA logs with pynmea2 (RMC points, GGA altitude) |
 | `track_stats.py` | `compute_stats()` -- distance, duration, moving time, speeds, elevation gain/loss, heart rate, splits |
-| `gps-tracker.py` | Original monolithic file (kept for reference) |
+| `_archive/gps-tracker.py` | Original monolithic file: superseded, known bugs, reference only (see `_archive/README.md`) |
 | `test_providers.py` | Smoke tests for providers and manager |
 | `run_web.py` | Starts the web app (uvicorn) on http://127.0.0.1:8161 |
 | `web/app.py` | FastAPI app: `/api/info`, `/api/demo`, `POST /api/analyze`; `STATIC_ENDPOINTS` for the static export |
